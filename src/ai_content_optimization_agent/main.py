@@ -13,20 +13,40 @@ warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 # Replace with inputs you want to test with, it will automatically
 # interpolate any tasks and agents information
 
-def run():
-    """
-    Run the crew.
-    """
-    inputs = {
-        'topic': 'AI LLMs',
-        'current_year': str(datetime.now().year)
-    }
+# def run():
+#     """
+#     Run the crew.
+#     """
+#     inputs = {
+#         'topic': 'AI LLMs',
+#         'current_year': str(datetime.now().year)
+#     }
     
+#     try:
+#         AiContentOptimizationAgent().crew().kickoff(inputs=inputs)
+#     except Exception as e:
+#         raise Exception(f"An error occurred while running the crew: {e}")
+
+def run():
+    # Read URL from the terminal
+    url = input("Please enter the URL to process: ").strip()
+
+    if not url:
+        raise ValueError("No URL provided. Exiting.")
+
+
+    # Build the required agent input
+    inputs = {
+        "url": url,
+    }
+
     try:
+        print(f"Analyzing '${url}' for AI content optimization...")
+
+        # Run the multi-agent workflow
         AiContentOptimizationAgent().crew().kickoff(inputs=inputs)
     except Exception as e:
         raise Exception(f"An error occurred while running the crew: {e}")
-
 
 def train():
     """

@@ -3,6 +3,7 @@ from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
 from crewai_tools import BrightDataWebUnlockerTool, BrightDataSearchTool
+from .llms.gemini_google_search_llm import GeminiWithGoogleSearch
 # If you want to run a snippet of code before or after the crew starts,
 # you can use the @before_kickoff and @after_kickoff decorators
 # https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
@@ -42,6 +43,25 @@ class AiContentOptimizationAgent():
             max_retries=3,
         )
 
+    @agent
+    def query_fanout_researcher_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config["query_fanout_researcher_agent"],
+            verbose=True,
+            llm=GeminiWithGoogleSearch(MODEL), # <--- Gemini integration with the Google Search tool
+        )
+
+    @task
+    def google_search_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["google_search_task"],
+            context=[self.scrape_title_task()],
+            agent=self.query_fanout_researcher_agent(),
+            max_retries=3,
+            markdown=True,
+            output_file="output/query_fanout.md",
+        )
+    
     @agent
     def researcher(self) -> Agent:
         return Agent(
@@ -84,4 +104,77 @@ class AiContentOptimizationAgent():
             process=Process.sequential,
             verbose=True,
             # process=Process.hierarchical, # In case you wanna use that instead https://docs.crewai.com/how-to/Hierarchical/
+        )
+
+    @agent
+    def main_query_extractor_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config["main_query_extractor_agent"],
+            verbose=True,
+            llm=MODEL,
+        )
+
+    @task
+    def main_query_extraction_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["main_query_extraction_task"],
+            context=[self.google_search_task()],
+            agent=self.main_query_extractor_agent(),
+        )
+
+    @agent
+    def ai_overview_retriever_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config["ai_overview_retriever_agent"],
+            tools=[serp_search_tool], # <--- SERP API tool integration
+            verbose=True,
+            llm=MODEL,
+        )
+
+    @task
+    def ai_overview_extraction_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["ai_overview_extraction_task"],
+            context=[self.main_query_extraction_task()],
+            agent=self.ai_overview_retriever_agent(),
+            max_retries=3,
+            markdown=True,
+            output_file="output/ai_overview.md",
+        )
+
+    @agent
+    def query_fanout_summarizer_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config["query_fanout_summarizer_agent"],
+            verbose=True,
+            llm=MODEL,
+        )
+
+    @task
+    def query_fanout_summarization_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["query_fanout_summarization_task"],
+            context=[self.google_search_task()],
+            agent=self.query_fanout_summarizer_agent(),
+            markdown=True,
+            output_file="output/query_fanout_summary.md",
+        )
+
+    @agent
+    def ai_content_optimizer_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config["ai_content_optimizer_agent"],
+            verbose=True,
+            llm=MODEL,
+        )
+
+    @task
+    def compare_ai_overview_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["compare_ai_overview_task"],
+            context=[self.query_fanout_summarization_task(), self.ai_overview_extraction_task()],
+            agent=self.ai_content_optimizer_agent(),
+            max_retries=3,
+            markdown=True,
+            output_file="output/report.md",
         )
