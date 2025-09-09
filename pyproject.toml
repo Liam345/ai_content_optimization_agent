@@ -1,0 +1,23 @@
+[project]
+name = "ai_content_optimization_agent"
+version = "0.1.0"
+description = "ai_content_optimization_agent using crewAI"
+authors = [{ name = "Your Name", email = "you@example.com" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai[tools]>=0.177.0,<1.0.0"
+]
+
+[project.scripts]
+ai_content_optimization_agent = "ai_content_optimization_agent.main:run"
+run_crew = "ai_content_optimization_agent.main:run"
+train = "ai_content_optimization_agent.main:train"
+replay = "ai_content_optimization_agent.main:replay"
+test = "ai_content_optimization_agent.main:test"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.crewai]
+type = "crew"
